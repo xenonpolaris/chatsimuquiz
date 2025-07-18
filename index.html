@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentCraft 10x10 Simulation</title>
+  <style>
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+    .container { max-width: 720px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    .chat-box { border: 1px solid #ccc; height: 340px; overflow-y: auto; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+    .input { width: 100%; padding: 10px; font-size: 16px; }
+    .button, .reset-button { margin-top: 10px; padding: 10px 20px; border: none; color: white; cursor: pointer; }
+    .button { background-color: #007bff; }
+    .reset-button { background-color: #dc3545; float: right; }
+    .counter, .phase-guide, .feedback { margin-top: 10px; font-weight: bold; }
+
+
+  </style>
+</head>
+
+  <div id="nameModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;">
+      <h2>Welcome to AgentCraft: Group Simulation</h2>
+      <p>Teacher Name:</p>
+      <input type="text" id="teacherInput" style="padding:10px;font-size:16px;" /><br/><br/>
+      <p>Student Names (up to 5):</p>
+      <input type="text" id="student1" placeholder="Student 1" style="padding:10px;font-size:16px;" /><br/>
+      <input type="text" id="student2" placeholder="Student 2" style="padding:10px;font-size:16px;" /><br/>
+      <input type="text" id="student3" placeholder="Student 3" style="padding:10px;font-size:16px;" /><br/>
+      <input type="text" id="student4" placeholder="Student 4" style="padding:10px;font-size:16px;" /><br/>
+      <input type="text" id="student5" placeholder="Student 5" style="padding:10px;font-size:16px;" /><br/><br/>
+      <button onclick="startSession()" style="padding:10px 20px;font-size:16px;background:#007bff;color:white;border:none;cursor:pointer;">Start Simulation</button>
+    </div>
+  </div>
+
+
+<body>
+<div class="container">
+<h2>🧑‍💼 AgentCraft: Structured 10×10 Simulation</h2>
+<h3 id="studentGreeting"></h3>
+  <h2>Good luck, people</h2>
+  <div class="chat-box" id="chatBox"></div>
+  <input type="text" class="input" id="agentInput" placeholder="Type your response here..." />
+  <button class="button" onclick="submitResponse()">Send Message</button>
+  <button class="reset-button" onclick="resetConversation()">Reset</button>
+  <button class="button" onclick="downloadAllResults()" style="background:#28a745;">📥 Descargar todos los resultados</button>
+
+  <div class="counter" id="turnCounter"></div>
+  <div class="phase-guide" id="phaseGuide"></div>
+  <div class="feedback" id="feedbackDisplay"></div>
+</div>
+
+<script>
+  let teacherName = "";
+  let studentNames = [];
+
+  function startSession() {
+    teacherName = document.getElementById("teacherInput").value.trim();
+    studentNames = [
+      document.getElementById("student1").value.trim(),
+      document.getElementById("student2").value.trim(),
+      document.getElementById("student3").value.trim(),
+      document.getElementById("student4").value.trim(),
+      document.getElementById("student5").value.trim()
+    ].filter(name => name !== "");
+
+    if (!teacherName || studentNames.length === 0) {
+      alert("Please enter teacher name and at least one student.");
+      return;
+    }
+
+    const displayNames = studentNames.join(", ");
+    document.getElementById("studentGreeting").innerText =
+      `👨‍🏫 Teacher: ${teacherName}\n👥 Group: ${displayNames}`;
+    document.getElementById("nameModal").style.display = "none";
+    resetConversation();
+  }
+
+const agentPhases = [
+  "Greet + Apologize",
+  "Ask for clarification",
+  "Reconfirm issue",
+  "Propose solution steps",
+  "Provide estimate or follow-up",
+  "Offer additional help or options",
+  "Confirm action taken",
+  "Ask if anything else is needed",
+  "Thank + restate support",
+  "Close with professionalism"
+];
+
+const scenarios = [
+  {
+    issue: "Hi, I was double-charged for my order.",
+    details: "I placed one order but saw two charges on my bank account, both labeled #4235.",
+    keywords: ["apologize", "refund", "charge", "order"],
+    responses: [
+      "I need this fixed ASAP.",
+      "When will the refund happen?",
+      "This has happened before.",
+      "Thanks for helping.",
+      "I’ll wait for confirmation.",
+      "Just make sure I’m not charged again.",
+      "Got it—I’ll monitor my account.",
+      "Anything else I need to do?",
+      "Let’s hope this gets solved.",
+      "Thanks again. Take care."
+    ]
+  },
+  {
+    issue: "My shipment hasn’t arrived and it’s been two weeks.",
+    details: "Tracking says 'delayed' but it was scheduled for last Monday.",
+    keywords: ["apologize", "track", "delivery", "delay"],
+    responses: [
+      "I'm getting frustrated.",
+      "Can you track it now?",
+      "I’ve contacted support twice.",
+      "Okay, thanks.",
+      "I need this resolved soon.",
+      "Is a refund possible?",
+      "Thanks for escalating.",
+      "Should I call the courier?",
+      "Appreciate the help.",
+      "Hope it comes soon."
+    ]
+  },
+  {
+    issue: "Your app keeps crashing on my phone.",
+    details: "It shuts down instantly on Android 13. Tried reinstalling twice.",
+    keywords: ["apologize", "crash", "device", "support"],
+    responses: [
+      "This is really annoying.",
+      "Any clue why this happens?",
+      "Reinstalling didn’t help.",
+      "Thanks anyway.",
+      "Can you guarantee stability?",
+      "Is there a web version?",
+      "Alright, I’ll wait.",
+      "Should I reset my phone?",
+      "Thanks for checking.",
+      "Hope it gets fixed soon."
+    ]
+  },
+  {
+    issue: "I found a billing error on last month’s statement.",
+    details: "There’s a $20 charge I didn’t authorize dated Jan 28.",
+    keywords: ["apologize", "billing", "error", "adjust", "statement"],
+    responses: [
+      "Please fix this quickly.",
+      "Explain the charge?",
+      "I didn’t buy anything that day.",
+      "Thanks for checking.",
+      "When will this be corrected?",
+      "What caused it?",
+      "Thanks for the honesty.",
+      "Will I get an email?",
+      "This keeps happening.",
+      "Glad someone’s fixing it."
+    ]
+  },
+  {
+    issue: "Can you cancel my order before it ships?",
+    details: "I just placed it 5 minutes ago—it's order #8899.",
+    keywords: ["apologize", "cancel", "refund", "confirm", "order"],
+    responses: [
+      "Please cancel right away.",
+      "Will I get the full refund?",
+      "I made the order by mistake.",
+      "Thanks for checking.",
+      "Can you confirm cancellation?",
+      "Any timeline on the refund?",
+      "Hope it doesn't ship accidentally.",
+      "Anything else I should do?",
+      "Thanks for responding fast.",
+      "Appreciate the help."
+    ]
+  },
+  {
+    issue: "I want to speak to a supervisor.",
+    details: "The last agent was rude and didn’t help with my billing problem.",
+    keywords: ["apologize", "supervisor", "transfer", "report", "complaint"],
+    responses: [
+      "I need this escalated.",
+      "Will they get back to me?",
+      "I’m losing patience here.",
+      "Thanks for trying.",
+      "Just get someone who can actually help.",
+      "Will this be filed officially?",
+      "Hope they’re more professional.",
+      "Can I get a reference number?",
+      "Appreciate the response.",
+      "Please handle this properly."
+    ]
+  }
+];
+
+let currentScenario = {};
+let agentTurn = 0;
+let customerTurn = 0;
+const maxTurns = 10;
+
+function resetConversation() {
+  currentScenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+  agentTurn = 0;
+  customerTurn = 0;
+  document.getElementById("chatBox").innerHTML = `<div><strong>Customer:</strong> ${currentScenario.issue}</div>`;
+  document.getElementById("agentInput").disabled = false;
+  document.getElementById("agentInput").value = "";
+  document.getElementById("feedbackDisplay").innerText = "";
+  updateCounter();
+  updatePhaseGuide();
+}
+
+function updateCounter() {
+  document.getElementById("turnCounter").innerText = `Agent: ${agentTurn}/${maxTurns} | Customer: ${customerTurn}/${maxTurns}`;
+}
+
+function updatePhaseGuide() {
+  const phaseText = agentPhases[agentTurn] || "Session complete.";
+  document.getElementById("phaseGuide").innerText = `🔄 Agent Phase: ${phaseText}`;
+}
+
+function submitResponse() {
+  const input = document.getElementById("agentInput").value.trim();
+  if (!input || agentTurn >= maxTurns) return;
+
+  const chatBox = document.getElementById("chatBox");
+  chatBox.innerHTML += `<div><strong>Agent:</strong> ${input}</div>`;
+  agentTurn++;
+  updateCounter();
+  updatePhaseGuide();
+  document.getElementById("agentInput").value = "";
+
+  setTimeout(() => {
+    let reply = "";
+    if (agentTurn === 2) {
+      reply = currentScenario.details;
+    } else if (customerTurn < currentScenario.responses.length) {
+      reply = currentScenario.responses[customerTurn];
+    } else {
+      reply = "Thanks again. That’s all for now.";
+    }
+
+    chatBox.innerHTML += `<div><strong>Customer:</strong> ${reply}</div>`;
+    customerTurn++;
+    updateCounter();
+
+    if (agentTurn >= maxTurns) {
+      document.getElementById("agentInput").disabled = true;
+      evaluateResponse();
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }, 600);
+}
+
+function evaluateResponse() {
+  const agentMessages = Array.from(document.querySelectorAll("#chatBox div"))
+    .map(div => div.textContent.toLowerCase())
+    .filter(line => line.includes("agent:"));
+
+  const keywords = currentScenario.keywords || [];
+  const matched = keywords.filter(word => agentMessages.some(msg => msg.includes(word)));
+  const missing = keywords.filter(word => !matched.includes(word));
+  const score = matched.length;
+
+  let result = `✅ Keywords used: ${matched.join(", ") || "None"}\n`;
+  result += `❌ Missing: ${missing.join(", ") || "None"}\n`;
+  result += `🧮 Score: ${score}/${keywords.length}`;
+  document.getElementById("feedbackDisplay").innerText = result;
+
+  const report = `Estudiante: ${studentName}
+  Score: ${score}/${keywords.length}
+  Usadas: ${matched.join(", ")}
+  Faltantes: ${missing.join(", ")}`;
+
+  const blob = new Blob([report], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const downloadLink = document.createElement("a");
+  downloadLink.href = url;
+  downloadLink.download = `${studentName}_AgentCraft.txt`;
+  downloadLink.click();
+
+  // Guardar resultados en el navegador
+  let results = JSON.parse(localStorage.getItem("agentCraftResults") || "[]");
+  results.push({ name: studentName, score, used: matched, missing });
+  localStorage.setItem("agentCraftResults", JSON.stringify(results));
+
+
+  // Send to Apps Script Web App
+  fetch("https://webhook.site/3bfa234f-95de-4b33-9591-b8a82d4e5d07", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      teacher: teacherName,
+      group: studentNames,
+      score: score,
+      used: matched,
+      missing: missing
+    })
+
+  }).catch(error => {
+    console.error("Error sending data to Google Apps Script:", error);
+    // Continue with the reset even if data submission fails
+  });
+
+  setTimeout(() => {
+    // Complete reset of all variables and UI elements
+    studentName = "";
+    agentTurn = 0;
+    customerTurn = 0;
+    document.getElementById("studentNameInput").value = "";
+    document.getElementById("nameModal").style.display = "flex";
+    document.getElementById("studentGreeting").innerText = "";
+    document.getElementById("chatBox").innerHTML = "";
+    document.getElementById("agentInput").disabled = false;
+    document.getElementById("agentInput").value = "";
+    document.getElementById("turnCounter").innerText = "";
+    document.getElementById("phaseGuide").innerText = "";
+    document.getElementById("feedbackDisplay").innerText = "";
+  }, 3000);
+}
+
+  function downloadAllResults() {
+    const entries = JSON.parse(localStorage.getItem("agentCraftResults") || "[]");
+    if (entries.length === 0) return alert("No hay resultados para descargar.");
+
+    let content = entries.map(entry =>
+      `👤 Nombre: ${entry.name}\n🧮 Score: ${entry.score}\n✅ Usadas: ${entry.used.join(", ")}\n❌ Faltantes: ${entry.missing.join(", ")}\n---`
+    ).join("\n\n");
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "AgentCraft_Resultados.txt";
+    link.click();
+  }
+
+
+window.onload = resetConversation;
+</script>
+</body>
+</html>
